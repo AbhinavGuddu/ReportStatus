@@ -35,19 +35,21 @@ export default function Home() {
 
   // Check for existing user session
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setShowLoginModal(false);
-        // Auto-enable edit mode for admin and co-admin
-        if (user.role === 'admin' || user.role === 'co-admin') {
-          setIsEditMode(true);
+    if (typeof window !== 'undefined') {
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          setCurrentUser(user);
+          setShowLoginModal(false);
+          // Auto-enable edit mode for admin and co-admin
+          if (user.role === 'admin' || user.role === 'co-admin') {
+            setIsEditMode(true);
+          }
+        } catch (error) {
+          console.error('Error parsing saved user:', error);
+          localStorage.removeItem('currentUser');
         }
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('currentUser');
       }
     }
   }, []);
@@ -62,7 +64,9 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
+    }
     setCurrentUser(null);
     setShowLoginModal(true);
     setIsEditMode(false);
