@@ -29,6 +29,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# mongodb exports
+/mongodb
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
