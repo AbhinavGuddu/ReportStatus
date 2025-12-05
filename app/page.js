@@ -494,28 +494,12 @@ export default function Home() {
                   currentValue: currentName
                 });
               }}
-              onReportDelete={(reportId, reportName) => {
-                setDeleteModal({
-                  isOpen: true,
-                  type: 'report',
-                  id: reportId,
-                  name: reportName
-                });
-              }}
               onCategoryEdit={(categoryId, currentName) => {
                 setEditModal({
                   isOpen: true,
                   type: 'category',
                   id: categoryId,
                   currentValue: currentName
-                });
-              }}
-              onCategoryDelete={(categoryId, categoryName) => {
-                setDeleteModal({
-                  isOpen: true,
-                  type: 'category',
-                  id: categoryId,
-                  name: categoryName
                 });
               }}
             />
