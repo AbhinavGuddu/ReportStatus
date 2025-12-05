@@ -3,7 +3,13 @@
 import React, { useState, useEffect } from "react";
 
 export default function QuickActions({ categories, stats, isEditMode, onQuickAction, currentSection }) {
-  const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsOpen(window.innerWidth > 768);
+    }
+  }, []);
 
   const getRecentActivity = () => {
     const activities = [];
@@ -138,7 +144,7 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
           overflowY: 'auto',
           boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.1)',
           borderLeft: '1px solid #e2e8f0',
-          display: window.innerWidth <= 768 && !isOpen ? 'none' : 'block'
+          display: typeof window !== 'undefined' && window.innerWidth <= 768 && !isOpen ? 'none' : 'block'
         }}
       >
         {/* Header */}

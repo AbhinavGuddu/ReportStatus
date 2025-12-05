@@ -583,8 +583,10 @@ export default function Home() {
           if (action === 'refresh') {
             setRefreshTrigger((prev) => prev + 1);
           } else if (action === 'quick_add') {
-            const event = new CustomEvent('openManualAdd');
-            window.dispatchEvent(event);
+            if (typeof window !== 'undefined') {
+              const event = new CustomEvent('openManualAdd');
+              window.dispatchEvent(event);
+            }
           } else if (action === 'mark_all_done') {
             if (confirm('Mark all In Progress reports as Completed?')) {
               categories.forEach(cat => {
