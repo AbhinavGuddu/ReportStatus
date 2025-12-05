@@ -59,7 +59,7 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemNam
       }}>
         <h3 style={{ color: '#dc2626', marginBottom: '15px' }}>🗑️ Confirm Delete</h3>
         <p style={{ marginBottom: '20px', color: '#666' }}>
-          Are you sure you want to delete {itemType} <strong>"{itemName}"</strong>?
+          Are you sure you want to delete {itemType} <strong>&quot;{itemName}&quot;</strong>?
         </p>
         <p style={{ marginBottom: '15px', fontSize: '14px', color: '#999' }}>
           Enter password to confirm:
