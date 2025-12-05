@@ -1,8 +1,15 @@
+/* eslint-disable curly */
 "use client";
 
 import React from "react";
 
-export default function ReportItem({ report, isEditMode, onStatusChange, onReportDelete, onReportEdit }) {
+export default function ReportItem({ report, isEditMode, currentUser, onStatusChange, onReportDelete, onReportEdit }) {
+  
+  // Check user permissions
+  const hasAdminPermissions = currentUser && (currentUser.role === 'admin' || currentUser.role === 'co-admin');
+  const isTester = currentUser && currentUser.role === 'tester';
+  const canEditStatus = currentUser && (hasAdminPermissions || isTester); // Remove isEditMode dependency for testers
+  const canEditReport = isEditMode && hasAdminPermissions;
   const getStatusClass = (status) => {
     switch (status) {
       case "completed":
@@ -11,6 +18,12 @@ export default function ReportItem({ report, isEditMode, onStatusChange, onRepor
         return "status pending";
       case "not-started":
         return "status not-started";
+      case "testing":
+        return "status testing";
+      case "verified":
+        return "status verified";
+      case "failed-testing":
+        return "status failed-testing";
       default:
         return "status not-started";
     }
@@ -21,22 +34,75 @@ export default function ReportItem({ report, isEditMode, onStatusChange, onRepor
       case "completed":
         return "✓ Completed";
       case "in-progress":
-        return "In Progress";
+        return "⏳ In Progress";
       case "not-started":
         return "✗ Not Started";
+      case "testing":
+        return "🧪 Testing";
+      case "verified":
+        return "✅ Verified";
+      case "failed-testing":
+        return "❌ Failed Testing";
       default:
         return "✗ Not Started";
     }
   };
 
   const handleClick = () => {
-    if (!isEditMode) return;
+    if (!canEditStatus) return;
 
-    // Cycle through statuses
+    // Different status cycles for different roles
     let newStatus;
-    if (report.status === "completed") newStatus = "in-progress";
-    else if (report.status === "in-progress") newStatus = "not-started";
-    else newStatus = "completed";
+    
+    if (isTester) {
+      // Testers can cycle through: testing → verified → failed-testing → testing
+      switch (report.status) {
+        case "not-started":
+          newStatus = "in-progress";
+          break;
+        case "in-progress":
+          newStatus = "completed";
+          break;
+        case "completed":
+          newStatus = "testing";
+          break;
+        case "testing":
+          newStatus = "verified";
+          break;
+        case "verified":
+          newStatus = "failed-testing";
+          break;
+        case "failed-testing":
+          newStatus = "not-started";
+          break;
+        default:
+          newStatus = "not-started";
+      }
+    } else {
+      // Admin/Co-admin: Full cycle
+      switch (report.status) {
+        case "not-started":
+          newStatus = "in-progress";
+          break;
+        case "in-progress":
+          newStatus = "completed";
+          break;
+        case "completed":
+          newStatus = "testing";
+          break;
+        case "testing":
+          newStatus = "verified";
+          break;
+        case "verified":
+          newStatus = "failed-testing";
+          break;
+        case "failed-testing":
+          newStatus = "not-started";
+          break;
+        default:
+          newStatus = "not-started";
+      }
+    }
 
     onStatusChange(report._id, newStatus);
   };
@@ -46,7 +112,7 @@ export default function ReportItem({ report, isEditMode, onStatusChange, onRepor
       className="list-item"
       onClick={handleClick}
       style={{ 
-        cursor: isEditMode ? "pointer" : "default",
+        cursor: canEditStatus ? "pointer" : "default",
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
@@ -59,7 +125,7 @@ export default function ReportItem({ report, isEditMode, onStatusChange, onRepor
         </span>
       </div>
       
-      {isEditMode && (
+      {canEditReport && (
         <div style={{ display: 'flex', gap: '5px' }}>
           {onReportEdit && (
             <button

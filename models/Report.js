@@ -15,7 +15,7 @@ const ReportSchema = new mongoose.Schema(
     status: {
       type: String,
       required: [true, "Please provide a status"],
-      enum: ["completed", "in-progress", "not-started"],
+      enum: ["completed", "in-progress", "not-started", "testing", "verified", "failed-testing"],
       default: "not-started",
     },
     environment: {
@@ -26,6 +26,10 @@ const ReportSchema = new mongoose.Schema(
     order: {
       type: Number,
       default: 0,
+    },
+    updatedBy: {
+      type: String,
+      default: 'System'
     },
   },
   {

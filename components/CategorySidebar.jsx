@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 
 export default function CategorySidebar({ categories, onCategoryClick, isEditMode, onAddCategory }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
 
   const scrollToCategory = (categoryId) => {
     const element = document.getElementById(`category-${categoryId}`);
@@ -83,7 +83,8 @@ export default function CategorySidebar({ categories, onCategoryClick, isEditMod
           zIndex: 1000,
           transition: 'left 0.3s ease',
           overflowY: 'auto',
-          boxShadow: '2px 0 10px rgba(0, 0, 0, 0.1)'
+          boxShadow: '2px 0 10px rgba(0, 0, 0, 0.1)',
+          display: window.innerWidth <= 768 && !isOpen ? 'none' : 'block'
         }}
       >
         <h3 style={{ 

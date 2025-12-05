@@ -1,0 +1,24 @@
+{"_id":{"$oid":"692daeee8f7936f543c50275"},"name":"ACA Categories Reports","environment":"aws","order":1,"createdAt":{"$date":"2025-12-01T15:06:22.712Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.712Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c50281"},"name":"Personal & Employment","environment":"aws","order":2,"createdAt":{"$date":"2025-12-01T15:06:22.74Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.74Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c5029b"},"name":"Talent Profile","environment":"aws","order":3,"createdAt":{"$date":"2025-12-01T15:06:22.768Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.768Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c5029f"},"name":"Statutory Compliance","environment":"aws","order":4,"createdAt":{"$date":"2025-12-01T15:06:22.771Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.771Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c502af"},"name":"Time Off","environment":"aws","order":5,"createdAt":{"$date":"2025-12-01T15:06:22.783Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.783Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c502b9"},"name":"Benefits","environment":"aws","order":6,"createdAt":{"$date":"2025-12-01T15:06:22.792Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.792Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c502d1"},"name":"Benefits Invoices","environment":"aws","order":7,"createdAt":{"$date":"2025-12-01T15:06:22.813Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.813Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c502db"},"name":"Audit Trail","environment":"aws","order":8,"createdAt":{"$date":"2025-12-01T15:06:22.824Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.824Z"},"__v":0}
+{"_id":{"$oid":"692daeee8f7936f543c502e1"},"name":"Payroll Reports","environment":"aws","order":9,"createdAt":{"$date":"2025-12-01T15:06:22.828Z"},"updatedAt":{"$date":"2025-12-01T15:06:22.828Z"},"__v":0}
+{"_id":{"$oid":"692fde96508b14bec6f93503"},"name":"Personal & Employment","environment":"dc","order":1}
+{"_id":{"$oid":"692fde96508b14bec6f9351b"},"name":"Paydata","environment":"dc","order":2}
+{"_id":{"$oid":"692fde96508b14bec6f9352a"},"name":"Pay Statement History","environment":"dc","order":3}
+{"_id":{"$oid":"692fde96508b14bec6f93532"},"name":"Wage Garnishment","environment":"dc","order":4}
+{"_id":{"$oid":"692fde96508b14bec6f93535"},"name":"On - Site Printing","environment":"dc","order":5}
+{"_id":{"$oid":"692fde96508b14bec6f93537"},"name":"Talent Profile","environment":"dc","order":6}
+{"_id":{"$oid":"692fde96508b14bec6f93539"},"name":"Recruitment","environment":"dc","order":7}
+{"_id":{"$oid":"692fde96508b14bec6f9353b"},"name":"Statutory Compliance","environment":"dc","order":8}
+{"_id":{"$oid":"692fde96508b14bec6f93544"},"name":"Time & Attendance","environment":"dc","order":9}
+{"_id":{"$oid":"692fde96508b14bec6f93545"},"name":"Time Off","environment":"dc","order":10}
+{"_id":{"$oid":"692fde96508b14bec6f9354a"},"name":"Benefits","environment":"dc","order":11}
+{"_id":{"$oid":"692fde96508b14bec6f93554"},"name":"Benefits Invoices","environment":"dc","order":12}
+{"_id":{"$oid":"692fde96508b14bec6f93559"},"name":"Setup","environment":"dc","order":13}
+{"_id":{"$oid":"692fde96508b14bec6f9355b"},"name":"Audit Trail","environment":"dc","order":14}
+{"_id":{"$oid":"692fde96508b14bec6f9355e"},"name":"ACA","environment":"dc","order":15}

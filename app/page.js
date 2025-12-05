@@ -11,6 +11,9 @@ import SummarySection from '@/components/SummarySection';
 import EditModal from '@/components/EditModal';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import QuickActions from '@/components/QuickActions';
+import TestingPanel from '@/components/TestingPanel';
+import LoginModal from '@/components/LoginModal';
+import UserManagement from '@/components/UserManagement';
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState('aws');
@@ -21,6 +24,121 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [editModal, setEditModal] = useState({ isOpen: false, type: '', id: '', currentValue: '' });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: '', id: '', name: '' });
+  const [isTestingMode, setIsTestingMode] = useState({
+    aws: false,
+    dc: false
+  });
+  const [timeRemaining, setTimeRemaining] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(true);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+
+  // Check for existing user session
+  useEffect(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+        setShowLoginModal(false);
+        // Auto-enable edit mode for admin and co-admin
+        if (user.role === 'admin' || user.role === 'co-admin') {
+          setIsEditMode(true);
+        }
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('currentUser');
+      }
+    }
+  }, []);
+
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    setShowLoginModal(false);
+    // Auto-enable edit mode for admin and co-admin
+    if (user.role === 'admin' || user.role === 'co-admin') {
+      setIsEditMode(true);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setCurrentUser(null);
+    setShowLoginModal(true);
+    setIsEditMode(false);
+  };
+
+  // 2-week biweekly testing cycle timer
+  useEffect(() => {
+    const updateTimer = () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 5 = Friday
+      const hour = now.getHours();
+      
+      // Calculate next 2-week cycle end (every 2nd Friday 5 PM)
+      const startDate = new Date('2024-01-01'); // Reference start date
+      const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+      const weeksSinceStart = Math.floor(daysSinceStart / 7);
+      const currentCycleWeek = weeksSinceStart % 2; // 0 = first week, 1 = second week
+      
+      let nextCycleEnd = new Date(now);
+      
+      if (currentCycleWeek === 0) {
+        // First week - next cycle end is next Friday 5 PM
+        const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+        if (daysUntilFriday === 0 && hour >= 17) {
+          nextCycleEnd.setDate(nextCycleEnd.getDate() + 7); // Next Friday
+        } else {
+          nextCycleEnd.setDate(nextCycleEnd.getDate() + daysUntilFriday);
+        }
+      } else {
+        // Second week - cycle ends this Friday 5 PM
+        const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+        if (daysUntilFriday === 0 && hour >= 17) {
+          // Already passed, next cycle is in 2 weeks
+          nextCycleEnd.setDate(nextCycleEnd.getDate() + 14);
+        } else {
+          nextCycleEnd.setDate(nextCycleEnd.getDate() + daysUntilFriday);
+        }
+      }
+      
+      nextCycleEnd.setHours(17, 0, 0, 0);
+      
+      const timeDiff = nextCycleEnd - now;
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+      
+      // Every 2nd week Friday at 3 PM (15:00), show warning
+      if (currentCycleWeek === 1 && dayOfWeek === 5 && hour === 15) {
+        if (isTestingMode.dc) {
+          alert('⚠️ DC 2-week testing cycle will end in 2 hours (5 PM). All verified reports will reset to completed.');
+        }
+        if (isTestingMode.aws) {
+          alert('⚠️ AWS 2-week testing cycle will end in 2 hours (5 PM). All verified reports will reset to completed.');
+        }
+      }
+      
+      // Every 2nd week Friday at 5 PM (17:00), end cycle and reset
+      if (currentCycleWeek === 1 && dayOfWeek === 5 && hour === 17 && now.getMinutes() === 0) {
+        console.log('🧪 2-week cycle completed');
+        if (isTestingMode.dc) {
+          resetVerifiedReports('dc');
+          alert('🧪 DC 2-week testing cycle completed! Verified reports reset back to completed.');
+        }
+        if (isTestingMode.aws) {
+          resetVerifiedReports('aws');
+          alert('🧪 AWS 2-week testing cycle completed! Verified reports reset back to completed.');
+        }
+      }
+    };
+    
+    updateTimer();
+    const timer = setInterval(updateTimer, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, [isTestingMode]);
 
   // Client info based on section
   const clientInfo =
@@ -55,12 +173,34 @@ export default function Home() {
     let completed = 0;
     let inProgress = 0;
     let notStarted = 0;
+    let testing = 0;
+    let verified = 0;
+    let failedTesting = 0;
 
     categories.forEach((category) => {
       category.reports.forEach((report) => {
-        if (report.status === 'completed') completed++;
-        else if (report.status === 'in-progress') inProgress++;
-        else notStarted++;
+        switch (report.status) {
+          case 'completed':
+            completed++;
+            break;
+          case 'in-progress':
+            inProgress++;
+            break;
+          case 'not-started':
+            notStarted++;
+            break;
+          case 'testing':
+            testing++;
+            break;
+          case 'verified':
+            verified++;
+            break;
+          case 'failed-testing':
+            failedTesting++;
+            break;
+          default:
+            notStarted++;
+        }
       });
     });
 
@@ -68,17 +208,99 @@ export default function Home() {
       completed,
       inProgress,
       notStarted,
-      total: completed + inProgress + notStarted,
+      testing,
+      verified,
+      failedTesting,
+      total: completed + inProgress + notStarted + testing + verified + failedTesting,
     };
   };
 
   const stats = calculateStats();
 
+  // Reset verified reports back to completed for new cycle (environment-specific)
+  const resetVerifiedReports = async (environment) => {
+    const now = new Date().toISOString();
+    
+    try {
+      // Fetch fresh data from database to get all verified reports
+      const response = await fetch(`/api/reports?environment=${environment}`);
+      const result = await response.json();
+      
+      if (result.data) {
+        const allVerifiedReports = [];
+        
+        // Collect all verified reports from fresh data
+        result.data.forEach(category => {
+          category.reports.forEach(report => {
+            if (report.status === 'verified') {
+              allVerifiedReports.push(report);
+            }
+          });
+        });
+        
+        console.log(`Found ${allVerifiedReports.length} verified reports in ${environment} to reset`);
+        
+        // Update all verified reports to completed
+        const updatePromises = allVerifiedReports.map(report => 
+          fetch(`/api/reports/${report._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              status: 'completed',
+              updatedAt: now,
+              updatedBy: 'System (Cycle Reset)'
+            }),
+          }).then(() => {
+            console.log(`✅ Reset ${report.name} from verified to completed`);
+          }).catch(error => {
+            console.error(`❌ Error resetting ${report.name}:`, error);
+          })
+        );
+        
+        // Wait for all updates to complete
+        await Promise.all(updatePromises);
+        
+        // Refresh the UI
+        setRefreshTrigger((prev) => prev + 1);
+        
+        console.log(`🔄 Reset completed for ${allVerifiedReports.length} reports in ${environment}`);
+      }
+    } catch (error) {
+      console.error('Error in resetVerifiedReports:', error);
+    }
+  };
+
+  // Move completed reports to testing
+  const moveCompletedToTesting = async () => {
+    const now = new Date().toISOString();
+    
+    categories.forEach(category => {
+      category.reports.forEach(async (report) => {
+        if (report.status === 'completed') {
+          try {
+            await fetch(`/api/reports/${report._id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                status: 'testing',
+                updatedAt: now
+              }),
+            });
+          } catch (error) {
+            console.error('Error moving report to testing:', error);
+          }
+        }
+      });
+    });
+    
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   // Handle status change
   const handleStatusChange = async (reportId, newStatus) => {
     const now = new Date().toISOString();
     
-    // Optimistic update with current timestamp
+    // Optimistic update with current timestamp and user info
     setCategories((prevCategories) => {
       return prevCategories.map((category) => ({
         ...category,
@@ -86,7 +308,8 @@ export default function Home() {
           report._id === reportId ? { 
             ...report, 
             status: newStatus,
-            updatedAt: now
+            updatedAt: now,
+            updatedBy: currentUser?.name || 'Unknown'
           } : report,
         ),
       }));
@@ -99,7 +322,8 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: newStatus,
-          updatedAt: now
+          updatedAt: now,
+          updatedBy: currentUser?.name || 'Unknown'
         }),
       });
     } catch (error) {
@@ -142,7 +366,15 @@ export default function Home() {
         onSwitchSection={setCurrentSection}
         clientInfo={clientInfo}
         isEditMode={isEditMode}
+        isTestingMode={isTestingMode[currentSection]}
+        currentUser={currentUser}
         onStartEditing={() => setShowPasswordModal(true)}
+        onToggleTesting={() => setIsTestingMode(prev => ({
+          ...prev,
+          [currentSection]: !prev[currentSection]
+        }))}
+        onLogout={handleLogout}
+        onShowUserManagement={() => setShowUserManagement(true)}
       />
 
       {loading ? (
@@ -154,6 +386,8 @@ export default function Home() {
           <SummarySection
             stats={stats}
             isEditMode={isEditMode}
+            timeRemaining={timeRemaining}
+            isTestingMode={isTestingMode[currentSection]}
             onUpdateData={() => {
               alert(
                 '✨ Data is automatically saved to the database!\n\nNo need to manually update.',
@@ -170,7 +404,30 @@ export default function Home() {
               category={category}
               reports={category.reports}
               isEditMode={isEditMode}
+              isTestingMode={isTestingMode[currentSection]}
+              currentUser={currentUser}
               onStatusChange={handleStatusChange}
+              onMarkAllVerified={async (categoryId) => {
+                const now = new Date().toISOString();
+                const categoryReports = categories.find(cat => cat._id === categoryId)?.reports || [];
+                
+                for (const report of categoryReports) {
+                  try {
+                    await fetch(`/api/reports/${report._id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ 
+                        status: 'verified',
+                        updatedAt: now
+                      }),
+                    });
+                  } catch (error) {
+                    console.error('Error marking report as verified:', error);
+                  }
+                }
+                
+                setRefreshTrigger((prev) => prev + 1);
+              }}
               onCategoryUpdate={async (categoryId, newName) => {
                 try {
                   const response = await fetch(`/api/categories/${categoryId}`, {
@@ -266,6 +523,8 @@ export default function Home() {
         </>
       )}
 
+
+
       <PasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
@@ -331,6 +590,7 @@ export default function Home() {
         categories={categories}
         stats={stats}
         isEditMode={isEditMode}
+        currentSection={currentSection}
         onQuickAction={(action) => {
           if (action === 'refresh') {
             setRefreshTrigger((prev) => prev + 1);
@@ -437,6 +697,19 @@ export default function Home() {
         itemName={deleteModal.name}
         itemType={deleteModal.type}
       />
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => {}} // Prevent closing without login
+        onLogin={handleLogin}
+      />
+
+      {showUserManagement && (
+        <UserManagement
+          currentUser={currentUser}
+          onClose={() => setShowUserManagement(false)}
+        />
+      )}
     </div>
     </>
   );

@@ -2,28 +2,30 @@
 
 import React, { useState, useEffect } from "react";
 
-export default function QuickActions({ categories, stats, isEditMode, onQuickAction }) {
-  const [isOpen, setIsOpen] = useState(true);
+export default function QuickActions({ categories, stats, isEditMode, onQuickAction, currentSection }) {
+  const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
 
   const getRecentActivity = () => {
     const activities = [];
     categories.forEach(cat => {
       if (cat.reports) {
         cat.reports.forEach(report => {
-          // Add activity based on updatedAt or status
-          const activity = {
-            name: report.name,
-            category: cat.name,
-            status: report.status,
-            time: report.updatedAt || report.createdAt || new Date(),
-            id: report._id
-          };
-          activities.push(activity);
+          // Only include reports that have been recently updated (not just created)
+          if (report.updatedAt && report.updatedAt !== report.createdAt) {
+            const activity = {
+              name: report.name,
+              category: cat.name,
+              status: report.status,
+              time: report.updatedAt,
+              updatedBy: report.updatedBy || 'Unknown',
+              id: report._id
+            };
+            activities.push(activity);
+          }
         });
       }
     });
     
-    // Sort by time (most recent first) and take last 5
     return activities
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 5);
@@ -62,6 +64,9 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
       case 'completed': return { icon: '✅', color: '#10b981', text: 'Completed' };
       case 'in-progress': return { icon: '⏳', color: '#f59e0b', text: 'In Progress' };
       case 'not-started': return { icon: '⭕', color: '#ef4444', text: 'Not Started' };
+      case 'testing': return { icon: '🧪', color: '#d97706', text: 'Testing' };
+      case 'verified': return { icon: '✅', color: '#059669', text: 'Verified' };
+      case 'failed-testing': return { icon: '❌', color: '#be185d', text: 'Failed Testing' };
       default: return { icon: '❓', color: '#6b7280', text: 'Unknown' };
     }
   };
@@ -71,11 +76,24 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
     return Math.round((stats.completed / stats.total) * 100);
   };
 
+  const getTestingVerifiedPercentage = () => {
+    if (stats.total === 0) return 0;
+    return Math.round((stats.verified / stats.total) * 100);
+  };
+
+  const getTestingInProgressPercentage = () => {
+    if (stats.total === 0) return 0;
+    return Math.round((stats.testing / stats.total) * 100);
+  };
+
+  const getTestingFailedPercentage = () => {
+    if (stats.total === 0) return 0;
+    return Math.round((stats.failedTesting / stats.total) * 100);
+  };
+
   const quickShortcuts = [
     { icon: "➕", label: "Quick Add", action: "quick_add", color: "#10b981" },
-    { icon: "🔄", label: "Refresh", action: "refresh", color: "#1e5799" },
-    { icon: "📊", label: "Mark All Done", action: "mark_all_done", color: "#10b981" },
-    { icon: "📝", label: "Export List", action: "export_list", color: "#f59e0b" }
+    { icon: "🔄", label: "Refresh", action: "refresh", color: "#1e5799" }
   ];
 
   return (
@@ -119,7 +137,8 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
           transition: 'right 0.3s ease',
           overflowY: 'auto',
           boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.1)',
-          borderLeft: '1px solid #e2e8f0'
+          borderLeft: '1px solid #e2e8f0',
+          display: window.innerWidth <= 768 && !isOpen ? 'none' : 'block'
         }}
       >
         {/* Header */}
@@ -187,12 +206,99 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
           </div>
         </div>
 
+        {/* Testing Progress Circle */}
+        <div style={{ marginBottom: '25px', textAlign: 'center' }}>
+          <h4 style={{ color: '#1e5799', marginBottom: '15px', fontSize: '14px' }}>
+            🧪 Testing Progress
+          </h4>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: `conic-gradient(
+              #059669 ${getTestingVerifiedPercentage() * 3.6}deg,
+              #d97706 ${getTestingVerifiedPercentage() * 3.6}deg ${(getTestingVerifiedPercentage() + getTestingInProgressPercentage()) * 3.6}deg,
+              #be185d ${(getTestingVerifiedPercentage() + getTestingInProgressPercentage()) * 3.6}deg ${(getTestingVerifiedPercentage() + getTestingInProgressPercentage() + getTestingFailedPercentage()) * 3.6}deg,
+              #e5e7eb ${(getTestingVerifiedPercentage() + getTestingInProgressPercentage() + getTestingFailedPercentage()) * 3.6}deg 360deg
+            )`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              background: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#059669'
+            }}>
+              {getTestingVerifiedPercentage()}%
+            </div>
+          </div>
+          <div style={{ fontSize: '10px', color: '#666', marginTop: '8px', lineHeight: '1.2' }}>
+            <div style={{ color: '#059669' }}>✓ {stats.verified} Verified</div>
+            <div style={{ color: '#d97706' }}>🧪 {stats.testing} Testing</div>
+            <div style={{ color: '#be185d' }}>❌ {stats.failedTesting} Failed</div>
+          </div>
+        </div>
+
+        {/* Quick Shortcuts */}
+        {isEditMode && (
+          <div style={{ marginBottom: '25px' }}>
+            <h4 style={{ color: '#1e5799', marginBottom: '15px', fontSize: '14px' }}>
+              ⚡ Quick Shortcuts
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {quickShortcuts.map((shortcut, index) => (
+                <button
+                  key={index}
+                  onClick={() => onQuickAction && onQuickAction(shortcut.action)}
+                  style={{
+                    background: 'white',
+                    border: `2px solid ${shortcut.color}`,
+                    borderRadius: '8px',
+                    padding: '10px 8px',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                    color: shortcut.color,
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textAlign: 'center'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.background = shortcut.color;
+                    e.target.style.color = 'white';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.background = 'white';
+                    e.target.style.color = shortcut.color;
+                  }}
+                >
+                  <span style={{ fontSize: '16px' }}>{shortcut.icon}</span>
+                  <span>{shortcut.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Recent Activity */}
         <div style={{ marginBottom: '25px' }}>
           <h4 style={{ color: '#1e5799', marginBottom: '15px', fontSize: '14px' }}>
             🕒 Recent Activity
           </h4>
-          <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {getRecentActivity().length > 0 ? getRecentActivity().map((activity, index) => {
               const statusInfo = getStatusIcon(activity.status);
               return (
@@ -221,8 +327,18 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
                       {getTimeAgo(activity.time)}
                     </span>
                   </div>
-                  <div style={{ color: '#374151', fontWeight: '500' }}>{activity.name}</div>
-                  <div style={{ color: '#9ca3af', fontSize: '10px' }}>in {activity.category}</div>
+                  <div style={{ color: '#374151', fontWeight: '500', fontSize: '12px' }}>
+                    📊 {activity.name}
+                  </div>
+                  <div style={{ color: '#9ca3af', fontSize: '10px' }}>
+                    📁 Category: {activity.category}
+                  </div>
+                  <div style={{ color: '#6366f1', fontSize: '9px', fontWeight: '500' }}>
+                    👤 Updated by: {activity.updatedBy}
+                  </div>
+                  <div style={{ color: '#059669', fontSize: '9px', fontStyle: 'italic' }}>
+                    🔄 Changed to: {statusInfo.text}
+                  </div>
                 </div>
               );
             }) : (
@@ -269,49 +385,7 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
           </div>
         </div>
 
-        {/* Quick Shortcuts */}
-        {isEditMode && (
-          <div>
-            <h4 style={{ color: '#1e5799', marginBottom: '15px', fontSize: '14px' }}>
-              ⚡ Quick Shortcuts
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {quickShortcuts.map((shortcut, index) => (
-                <button
-                  key={index}
-                  onClick={() => onQuickAction && onQuickAction(shortcut.action)}
-                  style={{
-                    background: 'white',
-                    border: `2px solid ${shortcut.color}`,
-                    borderRadius: '8px',
-                    padding: '10px 8px',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    fontWeight: '500',
-                    color: shortcut.color,
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textAlign: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.background = shortcut.color;
-                    e.target.style.color = 'white';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.background = 'white';
-                    e.target.style.color = shortcut.color;
-                  }}
-                >
-                  <span style={{ fontSize: '16px' }}>{shortcut.icon}</span>
-                  <span>{shortcut.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Footer */}
         <div style={{
@@ -325,7 +399,6 @@ export default function QuickActions({ categories, stats, isEditMode, onQuickAct
           borderTop: '1px solid #e2e8f0',
           paddingTop: '15px'
         }}>
-          💡 Right sidebar for quick access
         </div>
       </div>
     </>
