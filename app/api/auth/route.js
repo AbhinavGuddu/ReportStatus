@@ -29,10 +29,6 @@ export async function POST(request) {
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id);
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('currentUser', JSON.stringify(user));
-    }
-
     return NextResponse.json({ 
       user: {
         id: user.id,
