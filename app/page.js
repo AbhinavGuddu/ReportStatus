@@ -15,8 +15,6 @@ import TestingPanel from '@/components/TestingPanel';
 import LoginModal from '@/components/LoginModal';
 import UserManagement from '@/components/UserManagement';
 
-export const dynamic = 'force-dynamic';
-
 export default function Home() {
   const [currentSection, setCurrentSection] = useState('aws');
   const [categories, setCategories] = useState([]);
