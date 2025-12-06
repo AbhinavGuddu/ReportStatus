@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import AbhiBuddy from '@/components/AbhiBuddy';
 import ManualAdd from '@/components/ManualAdd';
@@ -14,6 +15,8 @@ import QuickActions from '@/components/QuickActions';
 import TestingPanel from '@/components/TestingPanel';
 import LoginModal from '@/components/LoginModal';
 import UserManagement from '@/components/UserManagement';
+
+export const dynamic = 'force-dynamic';
 
 export default function Home() {
   const [currentSection, setCurrentSection] = useState('aws');
