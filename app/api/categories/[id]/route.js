@@ -1,43 +1,44 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import Category from '@/models/Category';
-import Report from '@/models/Report';
-
-export async function DELETE(request, { params }) {
-  try {
-    await connectToDatabase();
-    
-    const { id } = params;
-    
-    // Delete all reports in this category first
-    await Report.deleteMany({ category: id });
-    
-    // Delete the category
-    await Category.findByIdAndDelete(id);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting category:', error);
-    return NextResponse.json({ error: 'Failed to delete category' }, { status: 500 });
-  }
-}
+import { supabase } from '@/lib/supabase';
 
 export async function PATCH(request, { params }) {
   try {
-    await connectToDatabase();
-    
     const { id } = params;
-    const { name } = await request.json();
-    
-    const category = await Category.findByIdAndUpdate(
-      id,
-      { name },
-      { new: true }
-    );
-    
-    return NextResponse.json({ data: category });
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update({
+        name: body.name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
   } catch (error) {
     console.error('Error updating category:', error);
-    return NextResponse.json({ error: 'Failed to update category' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    const { id } = params;
+
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

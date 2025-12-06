@@ -1,41 +1,48 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
-    await connectDB();
-    const { name, pin, role } = await request.json();
-    
-    let user;
-    
-    if (role === 'admin' || role === 'co-admin') {
-      // Admin/Co-admin login with PIN
-      user = await User.findOne({ name, pin, role, isActive: true });
-      if (!user) {
-        return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
-      }
-    } else {
-      // Tester login (name only)
-      user = await User.findOne({ name, role: 'tester', isActive: true });
-      if (!user) {
-        return NextResponse.json({ success: false, error: 'Tester not found' }, { status: 401 });
-      }
+    const { pin, name } = await request.json();
+
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('is_active', true);
+
+    if (error) throw error;
+
+    let user = null;
+
+    if (pin) {
+      user = users.find(u => u.pin === pin && (u.role === 'admin' || u.role === 'co-admin'));
+    } else if (name) {
+      user = users.find(u => u.name.toLowerCase() === name.toLowerCase());
     }
-    
-    // Update last login
-    await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-    
+
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    await supabase
+      .from('users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', user.id);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
+
     return NextResponse.json({ 
-      success: true, 
       user: {
-        _id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role
       }
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Auth error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

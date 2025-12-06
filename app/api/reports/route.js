@@ -1,63 +1,75 @@
 import { NextResponse } from 'next/server';
-import Category from '@/models/Category';
-import Report from '@/models/Report';
-import dbConnect from '@/lib/mongodb';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request) {
   try {
-    await dbConnect();
     const { searchParams } = new URL(request.url);
     const environment = searchParams.get('environment');
 
-    if (!environment) {
-      return NextResponse.json(
-        { error: 'Environment parameter is required' },
-        { status: 400 }
-      );
-    }
+    const { data: categories, error: catError } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('environment', environment)
+      .order('order', { ascending: true });
 
-    // Fetch categories for the environment
-    const categories = await Category.find({ environment }).sort({ order: 1 });
+    if (catError) throw catError;
 
-    // Fetch reports for the environment
-    const reports = await Report.find({ environment }).sort({ order: 1 });
+    const categoriesWithReports = await Promise.all(
+      categories.map(async (category) => {
+        const { data: reports, error: repError } = await supabase
+          .from('reports')
+          .select('*')
+          .eq('category_id', category.id)
+          .order('order', { ascending: true });
 
-    // Structure the response
-    const data = categories.map((category) => {
-      const categoryReports = reports.filter((report) => {
-        return report.category.toString() === category._id.toString();
-      });
+        if (repError) throw repError;
 
-      return {
-        ...category.toObject(),
-        reports: categoryReports
-      };
-    });
+        return {
+          _id: category.id,
+          name: category.name,
+          environment: category.environment,
+          order: category.order,
+          reports: reports.map(r => ({
+            _id: r.id,
+            name: r.name,
+            status: r.status,
+            environment: r.environment,
+            order: r.order,
+            updatedAt: r.updated_at,
+            updatedBy: r.updated_by
+          }))
+        };
+      })
+    );
 
-    if (data) {
-      return NextResponse.json({ data });
-    }
+    return NextResponse.json({ data: categoriesWithReports });
   } catch (error) {
     console.error('Error fetching reports:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch reports' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
-    await dbConnect();
     const body = await request.json();
+    
+    const { data, error } = await supabase
+      .from('reports')
+      .insert({
+        name: body.name,
+        category_id: body.category,
+        status: body.status || 'not-started',
+        environment: body.environment,
+        order: body.order || 99
+      })
+      .select()
+      .single();
 
-    const report = await Report.create(body);
-    return NextResponse.json({ data: report }, { status: 201 });
+    if (error) throw error;
+
+    return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
     console.error('Error creating report:', error);
-    return NextResponse.json(
-      { error: 'Failed to create report' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
