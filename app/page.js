@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import AbhiBuddy from '@/components/AbhiBuddy';
 import ManualAdd from '@/components/ManualAdd';
