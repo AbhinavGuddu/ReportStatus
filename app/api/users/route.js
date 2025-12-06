@@ -1,39 +1,43 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { supabase } from '@/lib/supabase';
 
-export async function GET(request) {
+export async function GET() {
   try {
-    await connectDB();
-    const { searchParams } = new URL(request.url);
-    const includeInactive = searchParams.get('includeInactive');
-    
-    const query = includeInactive ? {} : { isActive: true };
-    const users = await User.find(query).select('-pin').sort({ createdAt: -1 });
-    
-    console.log('Fetched users:', users.length);
-    return NextResponse.json({ success: true, data: users });
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
   } catch (error) {
-    console.error('Users API Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error fetching users:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
-    await connectDB();
-    const { name, email, role, pin, addedBy } = await request.json();
+    const body = await request.json();
     
-    const user = await User.create({
-      name,
-      email,
-      role,
-      pin: (role === 'admin' || role === 'co-admin') ? pin : undefined,
-      addedBy
-    });
-    
-    return NextResponse.json({ success: true, data: user });
+    const { data, error } = await supabase
+      .from('users')
+      .insert({
+        name: body.name,
+        email: body.email,
+        role: body.role,
+        pin: body.pin || null,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error creating user:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

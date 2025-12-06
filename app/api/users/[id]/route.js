@@ -1,28 +1,50 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import User from '@/models/User';
+import { supabase } from '@/lib/supabase';
+
+export async function PATCH(request, { params }) {
+  try {
+    const { id } = params;
+    const body = await request.json();
+
+    const updateData = {};
+    if (body.name) updateData.name = body.name;
+    if (body.email) updateData.email = body.email;
+    if (body.role) updateData.role = body.role;
+    if (body.pin !== undefined) updateData.pin = body.pin;
+    if (body.isActive !== undefined) updateData.is_active = body.isActive;
+    
+    updateData.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
 export async function DELETE(request, { params }) {
   try {
-    await connectDB();
     const { id } = params;
-    
-    // Only allow deletion by admin (not co-admin)
-    const { adminId } = await request.json();
-    const admin = await User.findById(adminId);
-    
-    if (!admin || admin.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Only admin can remove users' }, { status: 403 });
-    }
-    
-    // Don't allow admin to delete themselves
-    if (id === adminId) {
-      return NextResponse.json({ success: false, error: 'Cannot delete yourself' }, { status: 400 });
-    }
-    
-    await User.findByIdAndUpdate(id, { isActive: false });
+
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Error deleting user:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
